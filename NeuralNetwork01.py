@@ -51,9 +51,12 @@ class Network(object):
             #a = linear_activation(np.dot(w, a)+b)
             #a = sigmoid(np.dot(w, a)+b)
             if i<(self.num_layers-1):
-                a = leaky_relu(np.dot(w, a)+b)
+                a = relu(np.dot(w, a)+b)
+                #a = leaky_relu(np.dot(w, a)+b)
+                #a = linear_activation(np.dot(w, a)+b)
             else:
                 a = sigmoid(np.dot(w, a)+b)
+                #a = linear_activation(np.dot(w, a)+b)
             #a = relu(np.dot(w, a)+b)
             i+=1
         return np.array(a.T)[0]
@@ -84,10 +87,10 @@ class Network(object):
                 fakeProgressData = self.evaluate(training_data[:30])
                 #print(fakeProgressData[0])
                 #print(fakeProgressData[2]/30)
-                print ("Epoch {0}: {1} / {2}        {3}       {4}".format(j+1, round(realProgressData[0],1), n_test*5, round(realProgressData[1]/30,4), round(realProgressData[2]/30,4)))                
+                print ("Epoch {0}: {1} / {2}        {3}".format(j+1, round(realProgressData[0],1), n_test*5, round(realProgressData[1]/150,4)))                
                 epochsForGraph.append(j)
-                training_errors.append(realProgressData[2]/30)    
-                fakeTraining_errors.append(fakeProgressData[2]/30)  
+                training_errors.append(realProgressData[1]/150)    
+                fakeTraining_errors.append(fakeProgressData[1]/150)  
                 fakeTraining_inRange.append(fakeProgressData[0])         
                 if round(self.evaluate(test_data)[0],1) > self.highest:
                     self.highest = round(self.evaluate(test_data)[0],1)
@@ -113,12 +116,16 @@ class Network(object):
         howOFOnAvarage = 0
         howOFOnAvarage1 = 0
         for (x, y) in test_results:
-            howOFOnAvarage = howOFOnAvarage + abs(sum(x) - sum(y))**2
-            howOFOnAvarage1 = howOFOnAvarage1 + abs(sum(x) - sum(y))
-            for i in range(len(x)):              
+            #howOFOnAvarage = howOFOnAvarage + abs(sum(x) - sum(y))**2
+            #howOFOnAvarage1 = howOFOnAvarage1 + abs(sum(x) - sum(y))                  
+            for i in range(len(x)): 
+                ##print(abs(x[i] - y[i]))             
+                howOFOnAvarage1 = howOFOnAvarage1 + abs(x[i] - y[i])
                 if abs(x[i] - y[i]) < 0.1:
                     num = num + 1
-        return [num,howOFOnAvarage,howOFOnAvarage1] #sum(int(x == y) for (x, y) in test_results)
+        #print(howOFOnAvarage1)
+        #print(len(test_results))
+        return [num,howOFOnAvarage1] #sum(int(x == y) for (x, y) in test_results)
 
     def update_mini_batch(self, mini_batch, eta):
         """Update the network's weights and biases by applying
@@ -135,7 +142,6 @@ class Network(object):
         self.weights = [w-(eta/len(mini_batch))*nw for w, nw in zip(self.weights, nabla_w)]
         self.biases = [b-(eta/len(mini_batch))*nb for b, nb in zip(self.biases, nabla_b)]
         
-
     def backprop(self, x, y):
         """Return a tuple ``(nabla_b, nabla_w)`` representing the
         gradient for the cost function C_x.  ``nabla_b`` and
@@ -156,9 +162,12 @@ class Network(object):
             #activation = sigmoid(z)
             #activation = leaky_relu(z)
             if i<(self.num_layers-1):
-                activation = leaky_relu(z)
+                activation = relu(z)
+                #activation = leaky_relu(z)
+                #activation = linear_activation(z)
             else:
                 activation = sigmoid(z)
+                #activation = linear_activation(z)
             #a = relu(np.dot(w, a)+b)
             i+=1
             #activation = relu(z)
@@ -169,6 +178,7 @@ class Network(object):
         #sigmoid_prime(z)
         
         delta = np.array([k*l for k, l in zip(self.cost_derivative(activations[-1], y[np.newaxis].T), sigmoid_prime(zs[-1]))]).T#np.matrix()
+        #delta = np.array([k*l for k, l in zip(self.cost_derivative(activations[-1], y[np.newaxis].T), linear_activation_prime(zs[-1]))]).T
         #print(sigmoid_prime(zs[-1]))
         #delta0 = np.array([k*l for k, l in zip(self.cost_derivative(activations[-1], y[np.newaxis].T), leaky_relu_prime(zs[-1]))]).T
         #print(leaky_relu_prime(zs[-1]))
@@ -187,7 +197,8 @@ class Network(object):
             #sp = linear_activation_prime(z)
             #sigmoid_prime(z)
             #sp = sigmoid_prime(z)
-            sp = leaky_relu_prime(z)
+            #sp = leaky_relu_prime(z)
+            sp = relu_prime(z)
             delta = np.array([k*l for k, l in zip(np.dot(self.weights[-l+1].T, delta), sp)]).T#np.matrix()           
             #nabla_b[-l] = delta
             nabla_b[-l] = clip_gradients(delta,1000)
@@ -228,15 +239,8 @@ def sigmoid(z):
 def sigmoid_prime(z):
     """Derivative of the sigmoid function."""
     myArray = []
-    #print("z")
-    #print(z)
-    for i in z:
-        #print("i")
-        #print(i)       
+    for i in z:    
         myArray.append(sigmoid(i)*(1-sigmoid(i)))
-    #print("sigmoid")
-    #print(myArray)
-    #print(np.array(myArray))
     return np.array(myArray).T#sigmoid(z)*(1-sigmoid(z))#np.matrix()
 
 def leaky_relu(z):
@@ -299,12 +303,12 @@ def relu_prime(z):
     myArray = []
     for i in z:
         if i>=0 :
-            myArray.append(1)
+            myArray.append([1])
         else :
-            myArray.append(0)
+            myArray.append([0])
     #print(np.array(myArray))
     #return np.array(myArray, dtype=float).T
-    return np.array(myArray)
+    return np.array(myArray).T
 
 def linear_activation(z):
     return z
@@ -312,10 +316,10 @@ def linear_activation_prime(z):
     #myArray = np.zeros(z.shape)
     myArray = []
     for i in z:
-        myArray.append(1)
+        myArray.append([1])
     #print("linear")
     #print(myArray)
-    return np.array(myArray)[np.newaxis]
+    return np.array(myArray).T#[np.newaxis]
 
 
 def get_training_data5(how_Much_Data):
